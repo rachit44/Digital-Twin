@@ -1,0 +1,3 @@
+Next Steps Based on Your Requirements:
+✅ Step 1 (Done): Video to depth estimation (MiDaS, OpenCV).
+✅ Step 2: 3D point cloud generation from depth maps (Open3D, PCL).
