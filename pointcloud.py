@@ -1,6 +1,15 @@
 import numpy as np
 import open3d as o3d
 import cv2
+def filter_point_cloud(pcd, voxel_size=0.01, nb_neighbors=20, std_ratio=2.0):
+    # Voxel Downsampling
+    down_pcd = pcd.voxel_down_sample(voxel_size)
+
+    # Statistical Outlier Removal
+    cl, ind = down_pcd.remove_statistical_outlier(nb_neighbors=nb_neighbors, std_ratio=std_ratio)
+
+    filtered_pcd = down_pcd.select_by_index(ind)
+    return filtered_pcd
 
 
 def generate_point_cloud(rgb_image, depth_map, scale=1.0):
@@ -19,7 +28,7 @@ def generate_point_cloud(rgb_image, depth_map, scale=1.0):
     rgb_image = cv2.cvtColor(rgb_image, cv2.COLOR_BGR2RGB)
 
     height, width = depth_map.shape
-    fx = fy = max(width, height)  # Focal length approximation
+    fx = fy = max(width, height) * 0.8  # Adjust focal length
     cx = width / 2
     cy = height / 2
 
@@ -31,15 +40,15 @@ def generate_point_cloud(rgb_image, depth_map, scale=1.0):
     v = v.flatten()
     z = depth_map.flatten() * scale
 
-    # Filter out zero depth values (optional)
-    valid = z > 0
+    # Filter out near-zero depth values (optional, improves clarity)
+    valid = z > 0.01
     z = z[valid]
     u = u[valid]
     v = v[valid]
 
     # Compute x, y, z points in camera space
     x = (u - cx) * z / fx
-    y = (v - cy) * z / fy
+    y = -(v - cy) * z / fy
 
     # Stack points (N, 3)
     points = np.vstack((x, y, z)).transpose()
@@ -54,13 +63,4 @@ def generate_point_cloud(rgb_image, depth_map, scale=1.0):
 
     return pcd
 
-
-def visualize_point_cloud(pcd):
-    """
-    Visualizes the point cloud using Open3D.
-
-    Args:
-        pcd (o3d.geometry.PointCloud): Point cloud to visualize.
-    """
-    o3d.visualization.draw_geometries([pcd])
 
